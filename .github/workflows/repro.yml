@@ -1,8 +1,8 @@
-name: Repro IaC Finding
+name: Wiz Repro Scan
 on: [push, workflow_dispatch]
 
 jobs:
-  simulate-and-scan:
+  wiz-iac-scan:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -10,13 +10,16 @@ jobs:
 
       - name: Generate the Ghost File
         run: |
-          # This mimics the customer's "missing" file by copying the module 
-          # to the specific path reported in their finding.
+          # Mimicking the customer's transient file
+          mkdir -p AP1002_IBMMQ/Bicep/Modules/
           cp AP1002_IBMMQ/Bicep/Modules/vm_module.bicep AP1002_IBMMQ/Bicep/Modules/2efe14c5-5b0a-405d-a447-b14b257a8a79-input.bicep
-          
-      - name: Run IaC Scanner (Checkov)
-        uses: bridgecrewio/checkov-action@master
-        with:
-          directory: .
-          framework: bicep
-          soft_fail: true # This allows the job to finish even if it finds errors
+
+      - name: Download Wiz CLI
+        run: curl -o wizcli https://wizcli.s3.amazonaws.com/wizcli && chmod +x wizcli
+
+      - name: Authenticate Wiz CLI
+        run: ./wizcli auth --id ${{ secrets.WIZ_CLIENT_ID }} --secret ${{ secrets.WIZ_CLIENT_SECRET }}
+
+      - name: Run Wiz IaC Scan
+        run: |
+          ./wizcli iac scan --path . --policy "Wiz Default IaC Policy"
